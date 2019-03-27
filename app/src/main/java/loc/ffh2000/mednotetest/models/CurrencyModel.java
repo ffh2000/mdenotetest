@@ -1,5 +1,7 @@
 package loc.ffh2000.mednotetest.models;
 
+import android.os.Parcel;
+
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
@@ -22,6 +24,26 @@ public class CurrencyModel extends BaseModel {
 
     @SerializedName("symbol")
     private String symbol;
+
+    protected CurrencyModel(Parcel in) {
+        name = in.readString();
+        price = in.readParcelable(PriceModel.class.getClassLoader());
+        percentChange = in.readFloat();
+        volume = in.readInt();
+        symbol = in.readString();
+    }
+
+    public static final Creator<CurrencyModel> CREATOR = new Creator<CurrencyModel>() {
+        @Override
+        public CurrencyModel createFromParcel(Parcel in) {
+            return new CurrencyModel(in);
+        }
+
+        @Override
+        public CurrencyModel[] newArray(int size) {
+            return new CurrencyModel[size];
+        }
+    };
 
     public String getName() {
         return name;
@@ -61,5 +83,19 @@ public class CurrencyModel extends BaseModel {
 
     public void setSymbol(String symbol) {
         this.symbol = symbol;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(name);
+        dest.writeParcelable(price, flags);
+        dest.writeFloat(percentChange);
+        dest.writeInt(volume);
+        dest.writeString(symbol);
     }
 }

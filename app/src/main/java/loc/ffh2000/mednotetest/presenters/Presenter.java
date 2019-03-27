@@ -4,17 +4,19 @@ import android.app.Activity;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import loc.ffh2000.mednotetest.BaseActivity;
+
 /**
  * Base presenter class
  */
-public class Presenter implements IPresenter {
-    private Activity activity;
+public class Presenter<A extends BaseActivity> implements IPresenter<A> {
+    private A activity;
 
     public Presenter() {
         this(null);
     }
 
-    public Presenter(Activity activity) {
+    public Presenter(A activity) {
         this.activity = activity;
     }
 
@@ -24,7 +26,7 @@ public class Presenter implements IPresenter {
     }
 
     @Override
-    public Activity getActivity() {
+    public A getActivity() {
         return activity;
     }
 

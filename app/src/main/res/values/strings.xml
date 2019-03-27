@@ -4,4 +4,5 @@
 
     <!-- Exception -->
     <string name="exception_init_only_from_splash">Инициализировать MainActivity можно только из SplashActivity</string>
+    <string name="exception_unsupported_activity">В метод MainPresenter.init() должен передаваться только экземпляр MainActivity или SplashActivity</string>
 </resources>

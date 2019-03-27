@@ -1,8 +1,10 @@
 package loc.ffh2000.mednotetest;
 
+import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
 import loc.ffh2000.mednotetest.presenters.IPresenter;
+import loc.ffh2000.mednotetest.presenters.MainPresenter;
 
 /**
  * Базовый класс Activity для всех моих Activity с общими функциями
@@ -33,4 +35,5 @@ public class BaseActivity<P extends IPresenter> extends AppCompatActivity {
         this.presenter = presenter;
         return this.presenter;
     }
+
 }

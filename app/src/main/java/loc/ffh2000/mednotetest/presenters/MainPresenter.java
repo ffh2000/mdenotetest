@@ -1,7 +1,10 @@
 package loc.ffh2000.mednotetest.presenters;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -12,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
+import loc.ffh2000.mednotetest.BaseActivity;
 import loc.ffh2000.mednotetest.MainActivity;
 import loc.ffh2000.mednotetest.SplashActivity;
 import loc.ffh2000.mednotetest.models.Api;
@@ -23,20 +27,24 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import loc.ffh2000.mednotetest.R;
 
-public class MainPresenter extends Presenter {
+public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
     private static String EXCEPTION_ACTIVITY_NULL = "Activity property cannot be nullable";
+    private static String CURRENCY_TABLE = "currency_table";
 
-    public MainPresenter() {
-        this(null);
-    }
+    private CurrencyTableModel currencyTable;
 
     /**
      * Primary constructor
      *
      * @param activity
      */
-    public MainPresenter(Activity activity) {
+    public MainPresenter(A activity) {
         super(activity);
+        init();
+    }
+
+    public MainPresenter() {
+        this(null);
     }
 
     /**
@@ -56,13 +64,29 @@ public class MainPresenter extends Presenter {
     @Override
     public void init() {
         initNetwork();
-        loadData((CurrencyTableModel data) -> {
-            try {
-                startMainActivity();
-            } catch (Exception e) {
-                Log.e(getClass().getCanonicalName(), "init: " + e.getMessage());
-            }
-        });
+        if (getActivity() == null)
+            return;
+        if (getActivity() instanceof SplashActivity) {
+            //если стоим на splash, то запрашиваем данные и стартуем главный экран
+            loadData((CurrencyTableModel data) -> {
+                currencyTable = data;
+                try {
+                    Intent intent = new Intent(getActivity(), MainActivity.class);
+                    intent.putExtra(CURRENCY_TABLE, currencyTable);
+                    getActivity().startActivity(intent);
+                    getActivity().finish();
+                } catch (Exception e) {
+                    Log.e(getClass().getCanonicalName(), "init: " + e.getMessage());
+                }
+            });
+        } else if (getActivity() instanceof MainActivity) {
+            //если инициализация на главном экране, то грузим данные из Intent, предварительно перед закрытием splashActivity их туда уже поместили
+            currencyTable = getActivity().getIntent().getParcelableExtra(CURRENCY_TABLE);
+            ((MainActivity) getActivity()).setCurrencyTable(currencyTable);
+        } else {
+//            throw new Exception(getActivity().getString(R.string.exception_unsupported_activity));
+            Toast.makeText(getActivity(), getActivity().getString(R.string.exception_unsupported_activity), Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -86,28 +110,15 @@ public class MainPresenter extends Presenter {
     }
 
     /**
-     * Метод создает и запускает главный MainActivity.
-     * Данный метод предназначен только для запуски из splashActivity для инициализации главного
-     * экрана.
-     * @throws Exception
-     */
-    private void startMainActivity() throws Exception {
-        if (getActivity() == null)
-            throw new Exception(EXCEPTION_ACTIVITY_NULL);
-        if (!(getActivity() instanceof SplashActivity))
-            throw new Exception(getActivity().getString(R.string.exception_init_only_from_splash));
-        Intent intent = new Intent(getActivity(), MainActivity.class);
-        getActivity().startActivity(intent);
-        getActivity().finish();
-    }
-
-    /**
      * Метод загружает данные по сети и запускает callback
      */
-    public void loadData(CallbackFunc<CurrencyTableModel> callback) {
+    private void loadData(CallbackFunc<CurrencyTableModel> callback) {
         getNetApi().downloadData()
                 .observeOn(AndroidSchedulers.mainThread()) //возвращаю обработку в главный поток т.к. из других потоков нельзя работать с интерфейсными элементами
                 .subscribe(new ApiObserver(callback, CurrencyTableModel.class, "loadData"));
     }
 
+    public CurrencyTableModel getCurrencyTable() {
+        return currencyTable;
+    }
 }

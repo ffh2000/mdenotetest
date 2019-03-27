@@ -1,22 +1,35 @@
 package loc.ffh2000.mednotetest;
 
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewStub;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
-import loc.ffh2000.mednotetest.R;
+//import loc.ffh2000.mednotetest.R;
 
+import org.w3c.dom.Text;
+
+import loc.ffh2000.mednotetest.models.CurrencyModel;
+import loc.ffh2000.mednotetest.models.CurrencyTableModel;
 import loc.ffh2000.mednotetest.presenters.MainPresenter;
 
 public class MainActivity extends BaseActivity<MainPresenter> {
+    private CurrencyTableModel currencyTable;
+    private LinearLayout currencyLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setPresenter(new MainPresenter(this));
         setContentView(R.layout.activity_main);
-//        Toolbar toolbar = findViewById(R.id.toolbar);
-//        setSupportActionBar(toolbar);
+        currencyLayout = findViewById(R.id.content_main_currency_layout);
+
+        setPresenter(new MainPresenter(this));
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
 
     }
 
@@ -41,4 +54,29 @@ public class MainActivity extends BaseActivity<MainPresenter> {
 
         return super.onOptionsItemSelected(item);
     }
+
+    /**
+     * Мутатор для установки данных.
+     * @param currencyTable
+     */
+    public void setCurrencyTable(CurrencyTableModel currencyTable) {
+        this.currencyTable = currencyTable;
+        currencyLayout.removeAllViews();
+        for (CurrencyModel currency : currencyTable.getStock()) {
+            ViewStub viewStub = new ViewStub(this);// findViewById(R.id.);
+            viewStub.setLayoutResource(R.layout.currency_row);
+            currencyLayout.addView(viewStub);
+            View view = viewStub.inflate();
+
+            TextView tvCurrencyName = view.findViewById(R.id.currency_name);
+            tvCurrencyName.setText(currency.getName());
+
+            TextView tvCurrencyVolume = view.findViewById(R.id.currency_volume);
+            tvCurrencyVolume.setText(String.format("%d", currency.getVolume()));
+
+            TextView tvCurrencyAmount = view.findViewById(R.id.currency_price_amount);
+            tvCurrencyAmount.setText(String.format("%8.2f", currency.getPrice().getAmount()));
+        }
+    }
+
 }

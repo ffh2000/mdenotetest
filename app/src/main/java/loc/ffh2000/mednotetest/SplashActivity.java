@@ -16,7 +16,6 @@ public class SplashActivity extends BaseActivity<MainPresenter> {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setPresenter(new MainPresenter(this))
-                .init();
+        setPresenter(new MainPresenter(this));
     }
 }
