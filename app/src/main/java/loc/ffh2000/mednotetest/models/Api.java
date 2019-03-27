@@ -4,8 +4,10 @@ import io.reactivex.Observable;
 import retrofit2.http.GET;
 
 public interface Api {
-    String DATA_URL = "http://phisix-api3.appspot.com/stocks.json";
+    String BASE_URL = "http://phisix-api3.appspot.com/";
+    String DATA_SCRIPT = "stocks.json";
+    int DEFAULT_TIMEOUT = 60;
 
-    @GET(DATA_URL)
+    @GET(BASE_URL + DATA_SCRIPT)
     Observable<CurrencyTableModel> downloadData();
 }

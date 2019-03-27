@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName;
 /**
  * Model for price field
  */
-public class PriceModel {
+public class PriceModel extends BaseModel {
 
     @SerializedName("currency")
     private String currency;

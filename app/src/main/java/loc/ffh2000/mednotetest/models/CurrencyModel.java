@@ -6,7 +6,7 @@ import com.google.gson.annotations.SerializedName;
 /**
  * Модель для записи данных о валюте
  */
-public class CurrencyModel {
+public class CurrencyModel extends BaseModel {
 
     @SerializedName("name")
     private String name;

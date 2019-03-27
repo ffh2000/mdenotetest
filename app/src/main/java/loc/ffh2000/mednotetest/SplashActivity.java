@@ -4,13 +4,19 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-public class SplashActivity extends AppCompatActivity {
+import loc.ffh2000.mednotetest.presenters.IPresenter;
+import loc.ffh2000.mednotetest.presenters.MainPresenter;
+
+/**
+ * Activity для стартового экрана.
+ */
+public class SplashActivity extends BaseActivity<MainPresenter> {
+    private IPresenter presenter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //switch to my MainActivity
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
-        finish();
+        setPresenter(new MainPresenter(this))
+                .init();
     }
 }
