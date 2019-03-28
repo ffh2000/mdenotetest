@@ -8,10 +8,12 @@ import android.view.View;
 import android.view.ViewStub;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-//import loc.ffh2000.mednotetest.R;
 
-import org.w3c.dom.Text;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimerTask;
 
 import loc.ffh2000.mednotetest.models.CurrencyModel;
 import loc.ffh2000.mednotetest.models.CurrencyTableModel;
@@ -26,8 +28,8 @@ public class MainActivity extends BaseActivity<MainPresenter> {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         currencyLayout = findViewById(R.id.content_main_currency_layout);
-
         setPresenter(new MainPresenter(this));
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -48,8 +50,13 @@ public class MainActivity extends BaseActivity<MainPresenter> {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch (id) {
+            case R.id.action_exit:
+                getPresenter().exitFromApp();
+                break;
+            case R.id.action_refresh_currency_table:
+                getPresenter().refreshCurrencyTable();
+                break;
         }
 
         return super.onOptionsItemSelected(item);
@@ -62,6 +69,10 @@ public class MainActivity extends BaseActivity<MainPresenter> {
     public void setCurrencyTable(CurrencyTableModel currencyTable) {
         this.currencyTable = currencyTable;
         currencyLayout.removeAllViews();
+        Date currentDate = new Date();
+        DateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+        String timeText = timeFormat.format(currentDate);
+
         for (CurrencyModel currency : currencyTable.getStock()) {
             ViewStub viewStub = new ViewStub(this);// findViewById(R.id.);
             viewStub.setLayoutResource(R.layout.currency_row);
@@ -69,7 +80,7 @@ public class MainActivity extends BaseActivity<MainPresenter> {
             View view = viewStub.inflate();
 
             TextView tvCurrencyName = view.findViewById(R.id.currency_name);
-            tvCurrencyName.setText(currency.getName());
+            tvCurrencyName.setText(currency.getName() + " | " + timeText);
 
             TextView tvCurrencyVolume = view.findViewById(R.id.currency_volume);
             tvCurrencyVolume.setText(String.format("%d", currency.getVolume()));

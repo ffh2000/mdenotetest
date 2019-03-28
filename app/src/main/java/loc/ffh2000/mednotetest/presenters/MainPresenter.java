@@ -10,7 +10,10 @@ import android.widget.Toast;
 
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
@@ -30,8 +33,21 @@ import loc.ffh2000.mednotetest.R;
 public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
     private static String EXCEPTION_ACTIVITY_NULL = "Activity property cannot be nullable";
     private static String CURRENCY_TABLE = "currency_table";
+    private static int TIMER_INTERVAL = 15000;
+
+    private Timer timer;
+//    private AtomicBoolean isInTimer = new AtomicBoolean(false);
 
     private CurrencyTableModel currencyTable;
+
+    class updateCurrencyTableTask extends TimerTask {
+
+        @Override
+        public void run() {
+            refreshCurrencyTable();
+        }
+    }
+
 
     /**
      * Primary constructor
@@ -81,8 +97,11 @@ public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
             });
         } else if (getActivity() instanceof MainActivity) {
             //если инициализация на главном экране, то грузим данные из Intent, предварительно перед закрытием splashActivity их туда уже поместили
-            currencyTable = getActivity().getIntent().getParcelableExtra(CURRENCY_TABLE);
+            setCurrencyTable(getActivity().getIntent().getParcelableExtra(CURRENCY_TABLE));
             ((MainActivity) getActivity()).setCurrencyTable(currencyTable);
+            //запуск таймера для регулярного обновления
+            timer = new Timer();
+            timer.schedule(new updateCurrencyTableTask(), 0, TIMER_INTERVAL);
         } else {
 //            throw new Exception(getActivity().getString(R.string.exception_unsupported_activity));
             Toast.makeText(getActivity(), getActivity().getString(R.string.exception_unsupported_activity), Toast.LENGTH_SHORT).show();
@@ -120,5 +139,33 @@ public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
 
     public CurrencyTableModel getCurrencyTable() {
         return currencyTable;
+    }
+
+    private void setCurrencyTable(CurrencyTableModel currencyTable) {
+        //тут это излишне, но для демонстрации и возможной многопоточной работы вполне
+        synchronized (this.currencyTable) {
+            this.currencyTable = currencyTable;
+        }
+    }
+
+    /**
+     * Методя для закрытия приложения
+     */
+    public void exitFromApp() {
+        //обойдемся без чистки стека т.к. тут всего одно Activity
+        getActivity().finish();
+    }
+
+    /**
+     * Метод обновляет данные в таблице валют.
+     * На сервер отправляется запрос и новая модель данных устанавливается в вид (Activity).
+     */
+    public void refreshCurrencyTable() {
+        loadData((data) -> {
+            timer.cancel();
+            setCurrencyTable(data);
+            ((MainActivity) getActivity()).setCurrencyTable(currencyTable);
+            timer.schedule(new updateCurrencyTableTask(), 0, TIMER_INTERVAL);
+        });
     }
 }
