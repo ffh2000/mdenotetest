@@ -9,6 +9,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class CurrencyTableModel extends BaseModel {
+    /**
+     * Тег для сохранения данных в Parcel
+     */
+    public static String CURRENCY_TABLE = "currency_table";
+
     @SerializedName("stock")
     CurrencyModel[] stock;
 

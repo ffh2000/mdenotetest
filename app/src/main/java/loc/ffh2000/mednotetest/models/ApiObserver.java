@@ -53,7 +53,7 @@ public class ApiObserver implements Observer<BaseModel> {
      *                   Нужен для коректного формирования экземпляра-заглушки
      *                   при сетевых ошибках
      * @param methodName имя метода из которого вызван сетевой обработчик. Нужен для
- *                   вывода имя метода в котором произошла сетевая ошибка, что
+     *                   вывода имя метода в котором произошла сетевая ошибка
      */
     public ApiObserver(@NonNull CallbackFunc callback, Class<? extends BaseModel> modelClass, String methodName) {
         this.callback = callback;
@@ -76,7 +76,7 @@ public class ApiObserver implements Observer<BaseModel> {
     public void onError(Throwable e) {
         Log.e("ApiObserver", "onError: " + e.getClass().getName() + "\n\t\tmessage: " + e.getMessage());
         e.printStackTrace();
-        //яндекс-метрики нет, поэтому закомментировано. Но обработчик надо сюда ставить в реальных приложениях.
+        //яндекс-метрики нет, поэтому закомментировано
 //        YandexMetrica.reportUnhandledException(new TnsMetrikaException("LOG ошибки API в исключении:\nClass:"+ modelClass +"\nCallback: " + callback + "\nMethod Name: " + methodName + "\n" , e));
     }
 
@@ -124,9 +124,9 @@ public class ApiObserver implements Observer<BaseModel> {
     /**
      * Метод удаляет все текущие сетевые запросы презентера.<br><br>
      * Для коректного удаления, накладывается блокировка
-     * на список запросов. После этого каждый запрос останавливается.<br><br>
+     * на список запросов (он же монитор). После этого каждый запрос останавливается.<br><br>
      * ЗЫЖ С одной стороны такая работа в асинхроне избыточна т.к.
-     * RxJava выполняет все сетевые ответы в главном потоке, но
+     * все сетевые ответы я обрабатываю в главном потоке, но
      * с другой стороны <br>
      * 1. натянем презерватив на морковку,<br>
      * 2. в будущем можно будет безопасно вывести обработку из главного

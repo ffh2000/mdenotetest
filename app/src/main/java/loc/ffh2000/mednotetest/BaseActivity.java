@@ -4,7 +4,6 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
 import loc.ffh2000.mednotetest.presenters.IPresenter;
-import loc.ffh2000.mednotetest.presenters.MainPresenter;
 
 /**
  * Базовый класс Activity для всех моих Activity с общими функциями
@@ -36,4 +35,26 @@ public class BaseActivity<P extends IPresenter> extends AppCompatActivity {
         return this.presenter;
     }
 
+    //сохранение состояния
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        if (getPresenter() != null) {
+            getPresenter().onSaveInstanceState(outState);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getPresenter() != null)
+            getPresenter().onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (getPresenter() != null)
+            getPresenter().onPause();
+    }
 }

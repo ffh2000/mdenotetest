@@ -10,6 +10,10 @@ import android.widget.Toast;
 
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
@@ -31,36 +35,44 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import loc.ffh2000.mednotetest.R;
 
 public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
-    private static String EXCEPTION_ACTIVITY_NULL = "Activity property cannot be nullable";
-    private static String CURRENCY_TABLE = "currency_table";
+
+    /**
+     * Частота обновления таймера
+     */
     private static int TIMER_INTERVAL = 15000;
 
+    /**
+     * Таймер
+     */
     private Timer timer;
+
 //    private AtomicBoolean isInTimer = new AtomicBoolean(false);
 
+    /**
+     * Поле для хранения загруженной таблицы
+     */
     private CurrencyTableModel currencyTable;
 
-    class updateCurrencyTableTask extends TimerTask {
+    /**
+     * Primary constructor
+     * @param activity
+     * @param savedInstanceState
+     */
+    public MainPresenter(A activity, Bundle savedInstanceState) {
+        super(activity, savedInstanceState);
+    }
 
+    public MainPresenter(A activity) {
+        this(activity, null);
+    }
+    /**
+     * Подкласс для обслуживания таймера
+     */
+    class updateCurrencyTableTask extends TimerTask {
         @Override
         public void run() {
             refreshCurrencyTable();
         }
-    }
-
-
-    /**
-     * Primary constructor
-     *
-     * @param activity
-     */
-    public MainPresenter(A activity) {
-        super(activity);
-        init();
-    }
-
-    public MainPresenter() {
-        this(null);
     }
 
     /**
@@ -73,22 +85,36 @@ public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
      */
     private OkHttpClient okHttpClient;
 
+    /**
+     * Аксессор
+     * @return
+     */
     public Api getNetApi() {
         return netApi;
     }
 
+    /**
+     * Метод для инициализации презентера и вида.
+     *
+     * @param savedInstanceState сохраненное состояние. Имеет значение только при инициализации
+     *                           MainActivity. Если задан, то делается попытка сначала из него
+     *                           загрузить таблицу курсов (т.к. считаю, что идет режим
+     *                           восстановления приложения, а не пуска). Если не получается, тогда
+     *                           данные запрашиваются.
+     */
     @Override
-    public void init() {
+    public void init(Bundle savedInstanceState) {
         initNetwork();
         if (getActivity() == null)
             return;
         if (getActivity() instanceof SplashActivity) {
             //если стоим на splash, то запрашиваем данные и стартуем главный экран
             loadData((CurrencyTableModel data) -> {
-                currencyTable = data;
+                setCurrencyTable(data);
+
                 try {
                     Intent intent = new Intent(getActivity(), MainActivity.class);
-                    intent.putExtra(CURRENCY_TABLE, currencyTable);
+                    intent.putExtra(CurrencyTableModel.CURRENCY_TABLE, getCurrencyTable());
                     getActivity().startActivity(intent);
                     getActivity().finish();
                 } catch (Exception e) {
@@ -96,12 +122,15 @@ public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
                 }
             });
         } else if (getActivity() instanceof MainActivity) {
-            //если инициализация на главном экране, то грузим данные из Intent, предварительно перед закрытием splashActivity их туда уже поместили
-            setCurrencyTable(getActivity().getIntent().getParcelableExtra(CURRENCY_TABLE));
-            ((MainActivity) getActivity()).setCurrencyTable(currencyTable);
-            //запуск таймера для регулярного обновления
-            timer = new Timer();
-            timer.schedule(new updateCurrencyTableTask(), 0, TIMER_INTERVAL);
+            if (savedInstanceState == null) {
+                //если инициализация на главном экране, то грузим данные из Intent, предварительно перед закрытием splashActivity их туда уже поместили
+                setCurrencyTable(getActivity().getIntent().getParcelableExtra(CurrencyTableModel.CURRENCY_TABLE));
+                ((MainActivity) getActivity()).setCurrencyTable(getCurrencyTable());
+            } else {
+                //режим восстановления приложения (после убивания ОС)
+                setCurrencyTable(savedInstanceState.getParcelable(CurrencyTableModel.CURRENCY_TABLE));
+                ((MainActivity) getActivity()).setCurrencyTable(getCurrencyTable());
+            }
         } else {
 //            throw new Exception(getActivity().getString(R.string.exception_unsupported_activity));
             Toast.makeText(getActivity(), getActivity().getString(R.string.exception_unsupported_activity), Toast.LENGTH_SHORT).show();
@@ -134,22 +163,27 @@ public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
     private void loadData(CallbackFunc<CurrencyTableModel> callback) {
         getNetApi().downloadData()
                 .observeOn(AndroidSchedulers.mainThread()) //возвращаю обработку в главный поток т.к. из других потоков нельзя работать с интерфейсными элементами
-                .subscribe(new ApiObserver(callback, CurrencyTableModel.class, "loadData"));
+                .subscribe(new ApiObserver(callback, CurrencyTableModel.class, "loadData observer"));
     }
 
+    /**
+     * Аксессор
+     * @return
+     */
     public CurrencyTableModel getCurrencyTable() {
         return currencyTable;
     }
 
+    /**
+     * Мутатор
+     * @param currencyTable
+     */
     private void setCurrencyTable(CurrencyTableModel currencyTable) {
-        //тут это излишне, но для демонстрации и возможной многопоточной работы вполне
-        synchronized (this.currencyTable) {
-            this.currencyTable = currencyTable;
-        }
+        this.currencyTable = currencyTable;
     }
 
     /**
-     * Методя для закрытия приложения
+     * Метод для закрытия приложения
      */
     public void exitFromApp() {
         //обойдемся без чистки стека т.к. тут всего одно Activity
@@ -161,11 +195,47 @@ public class MainPresenter<A extends BaseActivity> extends Presenter<A> {
      * На сервер отправляется запрос и новая модель данных устанавливается в вид (Activity).
      */
     public void refreshCurrencyTable() {
+        //сбрасываю таймер что бы запросы не валились бюстро, синхронизация не нужна т.к. все в главном потоке
+        stopTimer();
         loadData((data) -> {
-            timer.cancel();
             setCurrencyTable(data);
-            ((MainActivity) getActivity()).setCurrencyTable(currencyTable);
-            timer.schedule(new updateCurrencyTableTask(), 0, TIMER_INTERVAL);
+            ((MainActivity)getActivity()).refreshLastUpdateText();
+            ((MainActivity) getActivity()).setCurrencyTable(getCurrencyTable());
+            startTimer();
         });
     }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        if (getCurrencyTable() != null) {
+            outState.putParcelable(CurrencyTableModel.CURRENCY_TABLE, getCurrencyTable());
+        }
+    }
+
+    @Override
+    public void onResume() {
+        //state-машину применять не буду т.к. все слишком просто... а может сделать?
+        startTimer();
+    }
+
+    @Override
+    public void onPause() {
+        //state-машину применять не буду т.к. все слишком просто
+        stopTimer();
+    }
+
+    private void stopTimer() {
+        if (getActivity() instanceof MainActivity) {
+            timer.cancel();
+        }
+    }
+
+    private void startTimer() {
+        if (getActivity() instanceof MainActivity) {
+            //запуск таймера для регулярного обновления
+            timer = new Timer();
+            timer.schedule(new updateCurrencyTableTask(), TIMER_INTERVAL, TIMER_INTERVAL);
+        }
+    }
+
 }
